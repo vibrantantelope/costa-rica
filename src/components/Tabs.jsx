@@ -19,7 +19,7 @@ export default function Tabs({ active, onChange }) {
           <button
             key={t}
             id={`tab-${t}`}
-            className={`tab${selected ? " tab--active" : ""}`}
+            className={`tab${selected ? ` tab--active tab--active-${t}` : ""}`}
             role="tab"
             aria-selected={selected}
             aria-controls={`panel-${t}`}
