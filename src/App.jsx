@@ -5,7 +5,7 @@ import { D, E, F } from "./data/options";
 import { timeGuess } from "./utils/time";
 
 export default function App() {
-  const [active, setActive] = useState("D");
+  const [active, setActive] = useState("F");
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
   const [favOnly, setFavOnly] = useState(false);
