@@ -53,7 +53,7 @@ export default function App() {
       <header className="site-header">
         <div className="site-header__titles">
           <h1 className="site-title">Costa Rica Trip — Schedule</h1>
-          <p className="site-subtitle">Bright, simple, and beachy ☀️🌴</p>
+          <p className="site-subtitle">Bright, simple, and beachy ☀️🌴 Built from everyone's spreadsheet responses to help plan our week in paradise!</p>
         </div>
         <div className="site-header__actions">
           <input
