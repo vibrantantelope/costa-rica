@@ -13,3 +13,5 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
+      - run: npm run deploy
+        if: github.ref == 'refs/heads/main'
