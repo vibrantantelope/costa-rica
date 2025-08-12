@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import Tabs from "./components/Tabs";
 import OptionPanel from "./components/OptionPanel";
 import { D, E, F } from "./data/options";
@@ -77,14 +78,17 @@ export default function App() {
 
       <Tabs active={active} onChange={setActive} />
 
-      <OptionPanel
-        id={`panel-${active}`}
-        labelledById={`tab-${active}`}
-        isActive={true}
-        days={filteredDays}
-        favorites={favs}
-        onToggleFavorite={toggleFav}
-      />
+      <AnimatePresence mode="wait">
+        <OptionPanel
+          key={active}
+          id={`panel-${active}`}
+          labelledById={`tab-${active}`}
+          isActive={true}
+          days={filteredDays}
+          favorites={favs}
+          onToggleFavorite={toggleFav}
+        />
+      </AnimatePresence>
     </div>
   );
 }
