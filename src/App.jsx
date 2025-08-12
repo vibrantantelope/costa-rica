@@ -15,13 +15,19 @@ export default function App() {
     catch { return new Set(); }
   });
 
-  useEffect(() => {
-    document.body.classList.toggle("compact", compact);
-  }, [compact]);
+    useEffect(() => {
+      document.body.classList.toggle("compact", compact);
+    }, [compact]);
 
-  useEffect(() => {
-    localStorage.setItem("cr-favs", JSON.stringify([...favs]));
-  }, [favs]);
+    useEffect(() => {
+      const cls = `theme-${active}`;
+      document.body.classList.add(cls);
+      return () => document.body.classList.remove(cls);
+    }, [active]);
+
+    useEffect(() => {
+      localStorage.setItem("cr-favs", JSON.stringify([...favs]));
+    }, [favs]);
 
   const dataMap = { D, E, F };
 
