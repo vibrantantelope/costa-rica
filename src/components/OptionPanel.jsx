@@ -1,9 +1,18 @@
+import { motion as Motion } from "framer-motion";
 import DayCard from "./DayCard";
 
 export default function OptionPanel({ id, isActive, days = [], labelledById, favorites, onToggleFavorite }) {
   if (!isActive) return null;
   return (
-    <div id={id} role="tabpanel" aria-labelledby={labelledById} className="option-panel">
+    <Motion.div
+      id={id}
+      role="tabpanel"
+      aria-labelledby={labelledById}
+      className="option-panel"
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+    >
       <div className="days-grid">
         {days.map((d, i) => (
           <DayCard
@@ -15,6 +24,6 @@ export default function OptionPanel({ id, isActive, days = [], labelledById, fav
           />
         ))}
       </div>
-    </div>
+    </Motion.div>
   );
 }
