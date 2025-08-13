@@ -1,4 +1,16 @@
+// src/components/OptionPanel.jsx
 import React from "react";
+
+function classify(name = "") {
+  const n = name.toLowerCase();
+  if (n.includes("departure")) return { kind: "depart", label: "Departure" };
+  if (n.includes("core booking")) return { kind: "core", label: "Core" };
+  if (n.includes("optional")) return { kind: "optional", label: "Optional" };
+  if (/—\s*open\b/i.test(name) || n.endsWith(" — Open".toLowerCase())) {
+    return { kind: "open", label: "Open" };
+  }
+  return { kind: "plain", label: null };
+}
 
 export default function OptionPanel({
   id,
@@ -16,38 +28,33 @@ export default function OptionPanel({
           <div className="day" key={day.date}>
             <h3 className="day__title">{day.date}</h3>
 
-            {/* Using a div list to avoid bullets entirely */}
             <div className="day__list">
               {day.items.map((it, idx) => {
                 const faved = favorites.has(it.name);
+                const { kind, label } = classify(it.name);
+
                 return (
                   <div
                     key={idx}
-                    className={`day__item ${faved ? "faved" : ""}`}
-                    // Make long lines wrap nicely and respect any line breaks you might add later
+                    className={`day__item item--${kind} ${faved ? "faved" : ""}`}
                     style={{ wordBreak: "break-word" }}
                   >
-                    <div
-                      className="day__item-main"
-                      style={{ alignItems: "flex-start" }}
-                    >
-                      {/* EXACT text from schedule.js */}
-                      <span
-                        className="day__item-name"
-                        style={{ fontWeight: 700, whiteSpace: "pre-wrap" }}
-                      >
+                    <div className="day__item-main" style={{ alignItems: "flex-start" }}>
+                      <span className="day__item-name" style={{ fontWeight: 800, whiteSpace: "pre-wrap" }}>
                         {it.name}
                       </span>
 
-                      {/* Tiny favorite toggle (keeps your existing filtering working) */}
-                      <button
-                        className="fav"
-                        aria-pressed={faved}
-                        onClick={() => onToggleFavorite(it.name)}
-                        title={faved ? "Remove favorite" : "Add favorite"}
-                      >
-                        {faved ? "❤" : "♡"}
-                      </button>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {label && <span className={`tag tag--${kind}`}>{label}</span>}
+                        <button
+                          className="fav"
+                          aria-pressed={faved}
+                          onClick={() => onToggleFavorite(it.name)}
+                          title={faved ? "Remove favorite" : "Add favorite"}
+                        >
+                          {faved ? "❤" : "♡"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

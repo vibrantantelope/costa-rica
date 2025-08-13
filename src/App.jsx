@@ -81,9 +81,10 @@ export default function App() {
           </div>
 
           <p className="site-explainer">
-            This schedule reflects our group's activity preferences and core bookings for the week.
+            We scheduled a few <strong>Core activities</strong> by popular demand and left the rest as <strong>Open time</strong> for you
+            to book (or chill) individually. We’ve shared both the Core picks and other possibilities with the concierge.
           </p>
-        
+
           {/* Organized actions: utilities on the left, nav on the right */}
           <div className="site-header__actions">
             <div className="actions__group">
@@ -104,14 +105,20 @@ export default function App() {
                 Print / Save PDF
               </button>
             </div>
-        
+
             <div className="actions__group">
+              <div className="legend">
+                <span className="tag tag--core">Core</span>
+                <span className="tag tag--open">Open</span>
+                <span className="tag tag--optional">Optional</span>
+                <span className="tag tag--depart">Departure</span>
+              </div>
               <button className="btn btn--home" onClick={() => navigate("landing")}>🏠 Home</button>
               <button className="btn" onClick={() => navigate("tips")}>🌴 Tips & Coordination</button>
               <button className="btn" onClick={() => navigate("rules")}>🛡️ Expectations & Rules</button>
             </div>
           </div>
-        
+
           <button
             className="header-toggle"
             onClick={() => setHeaderOpen(o => !o)}
@@ -120,6 +127,7 @@ export default function App() {
             {isHeaderOpen ? "Hide" : "Show"} Info
           </button>
         </header>
+
 
 
         <OptionPanel
