@@ -12,11 +12,11 @@ export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
           <p className="lead">
             Welcome! This mini-site has everything we need for a smooth trip.
           </p>
-          <ul className="intro-list">
-            <li>🗓️ <strong>Activity Schedule</strong> — the day-by-day plan sent to the concierge.</li>
-            <li>🌴 <strong>Tips & Coordination</strong> — flights, money, rides, packing, and local basics.</li>
-            <li>🛡️ <strong>Rules & Expectations</strong> — safety guidelines and group norms so everyone has fun.</li>
-          </ul>
+          <div className="intro-list">
+            <p>🗓️ <strong>Activity Schedule</strong> — the day-by-day plan sent to the concierge.</p>
+            <p>🌴 <strong>Tips & Coordination</strong> — flights, money, rides, packing, and local basics.</p>
+            <p>🛡️ <strong>Rules & Expectations</strong> — safety guidelines and group norms so everyone has fun.</p>
+          </div>
         </div>
 
         <div className="btn-row">
