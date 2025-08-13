@@ -11,6 +11,7 @@ export default function App() {
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
   const [favOnly, setFavOnly] = useState(false);
+  const [isHeaderOpen, setHeaderOpen] = useState(true);
   const [favs, setFavs] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem("cr-favs") || "[]")); }
     catch { return new Set(); }
@@ -54,11 +55,14 @@ export default function App() {
     <>
       <AnimatedBackground />
       <div className="container">
-        <header className="site-header">
+        <header className={`site-header ${isHeaderOpen ? "" : "collapsed"}`}>
           <div className="site-header__titles">
             <h1 className="site-title">Costa Rica Trip — Schedule</h1>
             <p className="site-subtitle">Bright, simple, and beachy ☀️🌴 Built from everyone's spreadsheet responses to help plan our week in paradise!</p>
           </div>
+          <p className="site-explainer">
+            These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
+          </p>
           <div className="site-header__actions">
             <input
               className="input"
@@ -77,6 +81,13 @@ export default function App() {
               Print / Save PDF
             </button>
           </div>
+          <button
+            className="header-toggle"
+            onClick={() => setHeaderOpen(o => !o)}
+            aria-expanded={isHeaderOpen}
+          >
+            {isHeaderOpen ? "Hide" : "Show"} Info
+          </button>
         </header>
 
         <Tabs active={active} onChange={setActive} />
