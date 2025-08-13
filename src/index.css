@@ -178,3 +178,17 @@ body.compact .days-grid{gap:12px}
   vertical-align:middle;
   margin-left:6px;
 }
+
+/* landing */
+.landing{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:40px 20px;
+}
+@media (max-width:480px){
+  .landing{padding:32px 16px;}
+}
