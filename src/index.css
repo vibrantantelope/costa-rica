@@ -251,4 +251,50 @@ body.compact .days-grid{gap:12px}
 @media (max-width:480px){
   .landing{padding:32px 16px;}
 }
+/* Better spacing/organization for header actions */
+.site-header__actions{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between; /* utilities left, nav right */
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.actions__group{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+/* Make the search input flex nicely and grow a bit */
+.site-header__actions .input{
+  min-width:260px;
+  width: clamp(240px, 32vw, 380px);
+}
+
+/* Prominent Home button */
+.btn--home{
+  background: linear-gradient(135deg, var(--orchid), var(--sea));
+  color:#fff;
+  border-color: transparent;
+  box-shadow: 0 2px 0 rgba(15,23,42,.06);
+}
+
+/* Stack groups on narrow screens and stretch the input */
+@media (max-width: 700px){
+  .site-header__actions{
+    flex-direction:column;
+    align-items:stretch;
+    gap:12px;
+  }
+  .actions__group{
+    justify-content:center;
+  }
+  .site-header__actions .input{
+    width:100%;
+  }
+}
+
 
