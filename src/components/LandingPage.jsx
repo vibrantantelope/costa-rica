@@ -1,6 +1,6 @@
 import AnimatedBackground from "./AnimatedBackground";
 
-export default function LandingPage({ onEnter }) {
+export default function LandingPage({ onEnter, onShowTips }) {
   return (
     <>
       <AnimatedBackground />
@@ -13,6 +13,7 @@ export default function LandingPage({ onEnter }) {
           These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
         </p>
         <button className="btn btn--primary" onClick={onEnter}>Enter</button>
+        <button className="btn" onClick={onShowTips}>General Tips & Coordination</button>
       </div>
     </>
   );
