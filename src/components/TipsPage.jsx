@@ -99,7 +99,7 @@ export default function TipsPage({ onBack }) {
           </p>
         </section>
 
-        <button className="btn" style={{ marginTop: "2rem" }} onClick={onBack}>
+        <button className="btn btn--rules" onClick={onBack}>
           Back
         </button>
       </div>
