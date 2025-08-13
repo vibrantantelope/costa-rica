@@ -84,29 +84,39 @@ export default function App() {
               So excited for this trip together! These schedules were built from everyone's responses to the activity planning sheet.
             </p>
           </div>
+        
           <p className="site-explainer">
             These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
           </p>
+        
+          {/* Organized actions: utilities on the left, nav on the right */}
           <div className="site-header__actions">
-            <input
-              className="input"
-              placeholder="Search activities (catamaran, coffee, beach...)"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <button className="btn" onClick={() => setFavOnly(v => !v)} aria-pressed={favOnly}>
-              {favOnly ? "Show All" : "Favorites Only"}
-              <span className="badge">{favCount}</span>
-            </button>
-            <button className="btn" onClick={() => setCompact(c => !c)} aria-pressed={compact}>
-              {compact ? "Normal Spacing" : "Compact Spacing"}
-            </button>
-            <button className="btn btn--primary" onClick={() => window.print()}>
-              Print / Save PDF
-            </button>
-            <button className="btn" onClick={() => navigate("tips")}>General Tips & Coordination</button>
-            <button className="btn" onClick={() => navigate("rules")}>Expectations & House Rules</button>
+            <div className="actions__group">
+              <input
+                className="input"
+                placeholder="Search activities (catamaran, coffee, beach...)"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <button className="btn" onClick={() => setFavOnly(v => !v)} aria-pressed={favOnly}>
+                {favOnly ? "Show All" : "Favorites Only"}
+                <span className="badge">{favCount}</span>
+              </button>
+              <button className="btn" onClick={() => setCompact(c => !c)} aria-pressed={compact}>
+                {compact ? "Normal Spacing" : "Compact Spacing"}
+              </button>
+              <button className="btn btn--primary" onClick={() => window.print()}>
+                Print / Save PDF
+              </button>
+            </div>
+        
+            <div className="actions__group">
+              <button className="btn btn--home" onClick={() => navigate("landing")}>🏠 Home</button>
+              <button className="btn" onClick={() => navigate("tips")}>🌴 Tips & Coordination</button>
+              <button className="btn" onClick={() => navigate("rules")}>🛡️ Expectations & Rules</button>
+            </div>
           </div>
+        
           <button
             className="header-toggle"
             onClick={() => setHeaderOpen(o => !o)}
@@ -115,6 +125,7 @@ export default function App() {
             {isHeaderOpen ? "Hide" : "Show"} Info
           </button>
         </header>
+
 
         <Tabs active={active} onChange={setActive} />
 
