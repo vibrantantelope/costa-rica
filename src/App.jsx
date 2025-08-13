@@ -64,7 +64,9 @@ export default function App() {
         <header className={`site-header ${isHeaderOpen ? "" : "collapsed"}`}>
           <div className="site-header__titles">
             <h1 className="site-title">Costa Rica Trip — Schedule</h1>
-            <p className="site-subtitle">Bright, simple, and beachy ☀️🌴 Built from everyone's spreadsheet responses to help plan our week in paradise!</p>
+            <p className="site-subtitle">
+              So excited for this trip together! These schedules were built from everyone's responses to the activity planning sheet.
+            </p>
           </div>
           <p className="site-explainer">
             These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
