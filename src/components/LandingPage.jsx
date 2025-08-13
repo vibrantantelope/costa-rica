@@ -1,6 +1,6 @@
 import AnimatedBackground from "./AnimatedBackground";
 
-export default function LandingPage({ onEnter, onShowTips }) {
+export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
   return (
     <>
       <AnimatedBackground />
@@ -14,6 +14,7 @@ export default function LandingPage({ onEnter, onShowTips }) {
         </p>
         <button className="btn btn--primary" onClick={onEnter}>Enter</button>
         <button className="btn" onClick={onShowTips}>General Tips & Coordination</button>
+        <button className="btn" onClick={onShowRules}>Expectations & House Rules</button>
       </div>
     </>
   );

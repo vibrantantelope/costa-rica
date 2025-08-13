@@ -5,6 +5,7 @@ import Tabs from "./components/Tabs";
 import OptionPanel from "./components/OptionPanel";
 import LandingPage from "./components/LandingPage";
 import TipsPage from "./components/TipsPage";
+import RulesPage from "./components/RulesPage";
 import { D, E, F } from "./data/options";
 import { timeGuess } from "./utils/time";
 
@@ -55,11 +56,15 @@ export default function App() {
   const favCount = favs.size;
   
   if (page === "landing") {
-    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => setPage("tips")} />;
+    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => setPage("tips")} onShowRules={() => setPage("rules")} />;
   }
 
   if (page === "tips") {
     return <TipsPage onBack={() => setPage("landing")} />;
+  }
+
+  if (page === "rules") {
+    return <RulesPage onBack={() => setPage("landing")} />;
   }
 
   return (
