@@ -4,11 +4,12 @@ import AnimatedBackground from "./components/AnimatedBackground";
 import Tabs from "./components/Tabs";
 import OptionPanel from "./components/OptionPanel";
 import LandingPage from "./components/LandingPage";
+import TipsPage from "./components/TipsPage";
 import { D, E, F } from "./data/options";
 import { timeGuess } from "./utils/time";
 
 export default function App() {
-  const [entered, setEntered] = useState(false);
+  const [page, setPage] = useState("landing");
   const [active, setActive] = useState("F");
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
@@ -53,8 +54,12 @@ export default function App() {
 
   const favCount = favs.size;
   
-  if (!entered) {
-    return <LandingPage onEnter={() => setEntered(true)} />;
+  if (page === "landing") {
+    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => setPage("tips")} />;
+  }
+
+  if (page === "tips") {
+    return <TipsPage onBack={() => setPage("landing")} />;
   }
 
   return (
