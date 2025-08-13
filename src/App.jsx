@@ -3,10 +3,12 @@ import { AnimatePresence } from "framer-motion";
 import AnimatedBackground from "./components/AnimatedBackground";
 import Tabs from "./components/Tabs";
 import OptionPanel from "./components/OptionPanel";
+import LandingPage from "./components/LandingPage";
 import { D, E, F } from "./data/options";
 import { timeGuess } from "./utils/time";
 
 export default function App() {
+  const [entered, setEntered] = useState(false);
   const [active, setActive] = useState("F");
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
@@ -50,6 +52,10 @@ export default function App() {
   }, [active, q, favOnly, favs]);
 
   const favCount = favs.size;
+  
+  if (!entered) {
+    return <LandingPage onEnter={() => setEntered(true)} />;
+  }
 
   return (
     <>
