@@ -8,6 +8,7 @@
   --coral: #ff6b6b;         /* accent */
   --line: #e6eef6;
   --ring: rgba(18,184,134,.25);
+  --orchid: #8b5cf6;        /* new: purple for a 3rd fun color */
 }
 
 *{box-sizing:border-box}
@@ -189,6 +190,65 @@ body.compact .days-grid{gap:12px}
   text-align:center;
   padding:40px 20px;
 }
+
+/* NEW: horizontal button row on landing */
+.btn-row{
+  display:flex;
+  flex-wrap:wrap;            /* wrap on small screens */
+  gap:14px;
+  justify-content:center;
+  margin-top:18px;
+}
+
+/* NEW: bigger, clearer landing buttons (scoped so other .btn stay the same) */
+.landing .btn{
+  --shadow: 0 8px 18px rgba(15,23,42,.12);
+  padding:14px 20px;
+  border-radius:9999px;      /* pill */
+  border:0;                  /* cleaner on gradients */
+  font-size:1.05rem;
+  font-weight:800;
+  letter-spacing:.2px;
+  color:#fff;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+
+/* NEW: fun, distinct colors */
+.btn--tips{
+  background: linear-gradient(135deg, var(--sea), #22c55e);     /* teal → green */
+}
+.btn--rules{
+  background: linear-gradient(135deg, var(--sun), var(--coral)); /* mango → coral */
+  color:#063;
+}
+.btn--schedule{
+  background: linear-gradient(135deg, var(--orchid), var(--sea)); /* purple → teal */
+}
+
+/* NEW: interaction states + a11y focus */
+.landing .btn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 22px rgba(15,23,42,.18);
+}
+.landing .btn:active{
+  transform: translateY(0);
+  filter: brightness(.98);
+  box-shadow: 0 6px 14px rgba(15,23,42,.18);
+}
+.landing .btn:focus-visible{
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ring), var(--shadow);
+}
+
+/* NEW: small-screen full-width buttons for readability */
+@media (max-width: 520px){
+  .landing .btn{ width:100%; }
+}
+
 @media (max-width:480px){
   .landing{padding:32px 16px;}
 }
+
