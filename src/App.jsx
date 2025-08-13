@@ -11,6 +11,7 @@ import { timeGuess } from "./utils/time";
 
 export default function App() {
   const [page, setPage] = useState("landing");
+  const [prevPage, setPrevPage] = useState(null);
   const [active, setActive] = useState("F");
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
@@ -55,16 +56,21 @@ export default function App() {
 
   const favCount = favs.size;
   
+  const navigate = (p) => {
+    setPrevPage(page);
+    setPage(p);
+  };
+
   if (page === "landing") {
-    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => setPage("tips")} onShowRules={() => setPage("rules")} />;
+    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => navigate("tips")} onShowRules={() => navigate("rules")} />;
   }
 
   if (page === "tips") {
-    return <TipsPage onBack={() => setPage("landing")} />;
+    return <TipsPage onBack={() => setPage(prevPage || "landing")} />;
   }
 
   if (page === "rules") {
-    return <RulesPage onBack={() => setPage("landing")} />;
+    return <RulesPage onBack={() => setPage(prevPage || "landing")} />;
   }
 
   return (
@@ -98,6 +104,8 @@ export default function App() {
             <button className="btn btn--primary" onClick={() => window.print()}>
               Print / Save PDF
             </button>
+            <button className="btn" onClick={() => navigate("tips")}>General Tips & Coordination</button>
+            <button className="btn" onClick={() => navigate("rules")}>Expectations & House Rules</button>
           </div>
           <button
             className="header-toggle"
