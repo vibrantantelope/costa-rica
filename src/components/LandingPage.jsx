@@ -6,11 +6,19 @@ export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
       <AnimatedBackground />
       <div className="landing">
         <h1 className="site-title">Costa Rica Trip 2025</h1>
-        <p className="site-subtitle">
-          So excited for this trip together! To make sure we all have a great time, we've put together this website with the activity schedule we sent to the concierge, tips and coordination information, and rules and expectations of us some items to help our group have a great time!
-        </p>
 
-        {/* New horizontal button row */}
+        {/* New intro wrapper limits line length and organizes content */}
+        <div className="landing__intro">
+          <p className="lead">
+            Welcome! This mini-site has everything we need for a smooth trip.
+          </p>
+          <ul className="intro-list">
+            <li>🗓️ <strong>Activity Schedule</strong> — the day-by-day plan sent to the concierge.</li>
+            <li>🌴 <strong>Tips & Coordination</strong> — flights, money, rides, packing, and local basics.</li>
+            <li>🛡️ <strong>Rules & Expectations</strong> — safety guidelines and group norms so everyone has fun.</li>
+          </ul>
+        </div>
+
         <div className="btn-row">
           <button className="btn btn--tips" onClick={onShowTips}>🌴 Tips & Coordination</button>
           <button className="btn btn--rules" onClick={onShowRules}>🛡️ Rules & Expectations</button>
