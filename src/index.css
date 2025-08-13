@@ -80,19 +80,6 @@ body{
   color:#063; border-color:transparent;
 }
 
-/* tabs */
-.tabs{display:flex; gap:8px; margin:12px 0 16px}
-.tab{
-  background:#fff; border:1px solid var(--line);
-  padding:10px 14px; border-radius:999px; cursor:pointer; font-weight:700;
-}
-.tab--active{
-  background: var(--coral);
-  color:#fff; border-color:transparent;
-}
-.tab--active-D{ background: var(--sea); }
-.tab--active-E{ background: var(--sun); color:#063; }
-.tab--active-F{ background: var(--coral); }
 
 /* toolbar (just search) */
 .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:6px 0 16px}
@@ -139,7 +126,7 @@ body.compact .days-grid{gap:12px}
 
 /* print */
 @media print{
-  .site-header, .tabs, .toolbar, .btn{ display:none !important }
+  .site-header, .toolbar, .btn{ display:none !important }
   body{ background:#fff; color:#000 }
   .container{ max-width:100%; padding:0 }
   .days-grid{ grid-template-columns: repeat(2, 1fr); gap:12px }

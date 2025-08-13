@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import AnimatedBackground from "./components/AnimatedBackground";
-import Tabs from "./components/Tabs";
 import OptionPanel from "./components/OptionPanel";
 import LandingPage from "./components/LandingPage";
 import TipsPage from "./components/TipsPage";
 import RulesPage from "./components/RulesPage";
-import { D, E, F } from "./data/options";
+import { schedule } from "./data/schedule";
 import { timeGuess } from "./utils/time";
 
 export default function App() {
   const [page, setPage] = useState("landing");
   const [prevPage, setPrevPage] = useState(null);
-  const [active, setActive] = useState("F");
   const [compact, setCompact] = useState(false);
   const [q, setQ] = useState("");
   const [favOnly, setFavOnly] = useState(false);
@@ -30,8 +27,6 @@ export default function App() {
     localStorage.setItem("cr-favs", JSON.stringify([...favs]));
   }, [favs]);
 
-  const dataMap = { D, E, F };
-
   function toggleFav(name){
     setFavs(prev => {
       const next = new Set(prev);
@@ -41,7 +36,7 @@ export default function App() {
   }
 
   const filteredDays = useMemo(() => {
-    const days = dataMap[active] || [];
+    const days = schedule || [];
     const qq = q.toLowerCase();
 
     const applySearch = (it) =>
@@ -52,7 +47,7 @@ export default function App() {
     return days
       .map(d => ({ ...d, items: d.items.filter(it => applySearch(it) && applyFav(it)) }))
       .filter(d => d.items.length > 0);
-  }, [active, q, favOnly, favs]);
+  }, [q, favOnly, favs]);
 
   const favCount = favs.size;
   
@@ -81,12 +76,12 @@ export default function App() {
           <div className="site-header__titles">
             <h1 className="site-title">Costa Rica Trip 2025</h1>
             <p className="site-subtitle">
-              So excited for this trip together! These schedules were built from everyone's responses to the activity planning sheet.
+              So excited for this trip together! This schedule was built from everyone's responses to the activity planning sheet.
             </p>
           </div>
-        
+
           <p className="site-explainer">
-            These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
+            This schedule reflects our group's activity preferences and core bookings for the week.
           </p>
         
           {/* Organized actions: utilities on the left, nav on the right */}
@@ -127,19 +122,13 @@ export default function App() {
         </header>
 
 
-        <Tabs active={active} onChange={setActive} />
-
-        <AnimatePresence mode="wait">
-          <OptionPanel
-            key={active}
-            id={`panel-${active}`}
-            labelledById={`tab-${active}`}
-            isActive={true}
-            days={filteredDays}
-            favorites={favs}
-            onToggleFavorite={toggleFav}
-          />
-        </AnimatePresence>
+        <OptionPanel
+          id="panel-schedule"
+          isActive={true}
+          days={filteredDays}
+          favorites={favs}
+          onToggleFavorite={toggleFav}
+        />
       </div>
     </>
   );
