@@ -12,6 +12,9 @@ export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
         <p className="site-explainer">
           These schedules were generated from everyone's activity preferences and are offered in three tabbed options.
         </p>
+        <button className="btn btn--primary" onClick={onEnter}>Enter</button>
+        <button className="btn btn--primary" onClick={onShowTips}>General Tips & Coordination</button>
+        <button className="btn btn--primary" onClick={onShowRules}>Rules & Expectations</button>
         <button className="btn btn--primary" onClick={onEnter}>Activity Schedule</button>
         <button className="btn" onClick={onShowTips}>General Tips & Coordination</button>
         <button className="btn" onClick={onShowRules}>Expectations & House Rules</button>
