@@ -111,53 +111,62 @@ export default function SignupPage({ onBack }) {
   }, [selected]);
 
   function toggleTopLevelItem(day, it) {
-    const key = `${day.date}::${it.name}`;
-    const meta = matchActivityMeta(it.name);
-    const { depositAmount, depositLabel } = getDepositInfo(meta);
-    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta);
+  const key = `${day.date}::${it.name}`;
+  const meta = matchActivityMeta(it.name);
+  const { depositAmount, depositLabel } = getDepositInfo(meta);
+  const { fullPriceAmount, fullPriceLabel: rawFullLabel } = getFullPriceInfo(meta);
+  const safeFullLabel =
+    rawFullLabel || (typeof fullPriceAmount === "number" ? `$${fullPriceAmount}` : "TBD");
 
-    setSelected(prev => {
-      const next = new Map(prev);
-      if (next.has(key)) next.delete(key);
-      else
-        next.set(key, {
-          key,
-          date: day.date,
-          name: it.name,
-          depositAmount,
-          depositLabel,
-          fullPriceAmount,
-          fullPriceLabel,
-          reservationBacked: !!meta?.reservationBacked
-        });
-      return next;
-    });
-  }
+  setSelected(prev => {
+    const next = new Map(prev);
+    if (next.has(key)) next.delete(key);
+    else
+      next.set(key, {
+        key,
+        date: day.date,
+        name: it.name,
+        depositAmount,
+        depositLabel,
+        fullPriceAmount,
+        fullPriceLabel: safeFullLabel,
+        reservationBacked: !!meta?.reservationBacked,
+        variantId: "" // keep column J consistent in the sheet
+      });
+    return next;
+  });
+}
+
 
   function toggleOptionalSubItem(day, subKey) {
-    const meta = getMetaByKey(subKey);
-    if (!meta) return;
-    const key = `${day.date}::${meta.label}`;
-    const { depositAmount, depositLabel } = getDepositInfo(meta);
-    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta);
+  const meta = getMetaByKey(subKey);
+  if (!meta) return;
 
-    setSelected(prev => {
-      const next = new Map(prev);
-      if (next.has(key)) next.delete(key);
-      else
-        next.set(key, {
-          key,
-          date: day.date,
-          name: meta.label,
-          depositAmount,
-          depositLabel,
-          fullPriceAmount,
-          fullPriceLabel,
-          reservationBacked: true
-        });
-      return next;
-    });
-  }
+  const key = `${day.date}::${meta.label}`;
+  const { depositAmount, depositLabel } = getDepositInfo(meta);
+  const { fullPriceAmount, fullPriceLabel: rawFullLabel } = getFullPriceInfo(meta);
+  const safeFullLabel =
+    rawFullLabel || (typeof fullPriceAmount === "number" ? `$${fullPriceAmount}` : "TBD");
+
+  setSelected(prev => {
+    const next = new Map(prev);
+    if (next.has(key)) next.delete(key);
+    else
+      next.set(key, {
+        key,
+        date: day.date,
+        name: meta.label,
+        depositAmount,
+        depositLabel,
+        fullPriceAmount,
+        fullPriceLabel: safeFullLabel,
+        reservationBacked: true,
+        variantId: "" // keep column J consistent in the sheet
+      });
+    return next;
+  });
+}
+
 
   async function submitForm(e) {
     e.preventDefault();
@@ -174,14 +183,16 @@ export default function SignupPage({ onBack }) {
       name,
       email,
       phone,
-      totalDeposit, // ← what we actually collect now
+      totalDeposit,           // primary (what you collect)
+      total: totalDeposit,    // also send 'total' to satisfy any older/edge deployments
       selections: Array.from(selected.values()).map(s => ({
         date: s.date,
         activity: s.name,
-        fullPriceLabel: s.fullPriceLabel,
+        fullPriceLabel: s.fullPriceLabel || "TBD",
         depositLabel: s.depositLabel,
         depositAmount: s.depositAmount,
         reservationBacked: !!s.reservationBacked,
+        variantId: s.variantId ?? ""
       })),
       ts: new Date().toISOString(),
     };
