@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import AnimatedBackground from "./AnimatedBackground";
 import { schedule } from "../data/schedule";
-import { detectDeposit } from "../data/deposits";
+import {
+  matchActivityMeta,
+  getDepositInfo,
+  getFullPriceInfo,
+  detectDeposit // kept for backwards compatibility
+} from "../data/deposits";
 
 // 👉 Set these:
 const VENMO_USER = "John-Kenny-16";
-// Proxy endpoint (Cloudflare Worker)
-// Web App URL from Google Apps Script deployment
+// Cloudflare Worker proxy → Apps Script
 const SUBMIT_ENDPOINT = "https://cr-form-proxy.costaricaform.workers.dev";
-
-// Published CSV of the roster sheet (same sheet your Apps Script writes to)
-const ROSTER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-DYvrR3GHNdhO129OGX7ba1Gg4YdBzZf1aB6_yvQewqinyCcM_J3Gf8AahziTqGaknPPGHxR47dUz/pub?output=csv";
+// Published CSV (roster)
+const ROSTER_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-DYvrR3GHNdhO129OGX7ba1Gg4YdBzZf1aB6_yvQewqinyCcM_J3Gf8AahziTqGaknPPGHxR47dUz/pub?output=csv";
 
 function venmoUrl(amount, note) {
   const params = new URLSearchParams({
@@ -36,49 +40,128 @@ function parseCSV(text) {
   });
 }
 
+/** Small inline components ************************************************************/
+
+function Badge({ children, tone = "info" }) {
+  const bg =
+    tone === "ok" ? "var(--ok-25)" :
+    tone === "warn" ? "var(--warn-25)" :
+    "var(--primary-10)";
+  const color =
+    tone === "ok" ? "var(--ok-600)" :
+    tone === "warn" ? "var(--warn-700)" :
+    "var(--primary-700)";
+  return (
+    <span style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 999,
+      fontSize: 12,
+      background: bg,
+      color
+    }}>{children}</span>
+  );
+}
+
+function VariantPicker({ meta, value, onChange }) {
+  if (!meta?.variants || meta.variants.length === 0) return null;
+  return (
+    <select
+      className="input"
+      value={value || meta.defaultVariantId || meta.variants[0]?.id}
+      onChange={e => onChange(e.target.value)}
+      style={{ width: "auto", paddingRight: 28 }}
+    >
+      {meta.variants.map(v => (
+        <option key={v.id} value={v.id}>
+          {v.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function PriceLine({ fullPriceLabel, depositLabel }) {
+  return (
+    <div className="day__item-preferred" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <span><strong>Total per person:</strong> {fullPriceLabel}</span>
+      <span><strong>Deposit:</strong> {depositLabel}</span>
+    </div>
+  );
+}
+
+/** Main Page *************************************************************************/
+
 export default function SignupPage({ onBack }) {
   // user info
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  // selections: Map<key, {date, name, depositLabel, depositAmount}>
+  // per-item UI state: chosen variant for items that have one
+  // Map<itemKey, variantId>
+  const [variantChoice, setVariantChoice] = useState(new Map());
+
+  // selections: Map<key, {date, name, variantId, deposit, fullPrice, labels..., reservationBacked}>
   const [selected, setSelected] = useState(new Map());
 
   // loading + roster
   const [submitting, setSubmitting] = useState(false);
   const [roster, setRoster] = useState([]);
 
-  // Build a flat list of selectable items from schedule (not strictly needed for rendering, but useful if you need it later)
-  const items = useMemo(() => {
-    const out = [];
-    for (const day of schedule) {
-      for (const it of day.items) {
-        if (/arrival|departure|open|free/i.test(it.name)) continue;
-        const dep = detectDeposit(it.name);
-        out.push({
-          key: `${day.date}::${it.name}`,
-          date: day.date,
-          name: it.name,
-          depositLabel: dep?.label || "TBD",
-          depositAmount: dep?.amount ?? 0,
-        });
-      }
-    }
-    return out;
-  }, []);
-
+  // compute total deposit
   const total = useMemo(() => {
     let t = 0;
     for (const v of selected.values()) t += v.depositAmount || 0;
     return t;
   }, [selected]);
 
-  function toggleItem(item) {
+  function toggleItem(day, it) {
+    const key = `${day.date}::${it.name}`;
+    const meta = matchActivityMeta(it.name);
+    const vId = variantChoice.get(key) || meta?.defaultVariantId || meta?.variants?.[0]?.id || null;
+
+    const { depositAmount, depositLabel } = getDepositInfo(meta, vId);
+    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta, vId);
+
     setSelected(prev => {
       const next = new Map(prev);
-      if (next.has(item.key)) next.delete(item.key);
-      else next.set(item.key, item);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.set(key, {
+          key,
+          date: day.date,
+          name: it.name,
+          variantId: vId,
+          depositAmount,
+          depositLabel,
+          fullPriceAmount,
+          fullPriceLabel,
+          reservationBacked: !!meta?.reservationBacked,
+        });
+      }
+      return next;
+    });
+  }
+
+  function updateVariant(day, it, newVariantId) {
+    const key = `${day.date}::${it.name}`;
+    setVariantChoice(prev => {
+      const copy = new Map(prev);
+      copy.set(key, newVariantId);
+      return copy;
+    });
+
+    // If currently selected, refresh its pricing with the new variant
+    setSelected(prev => {
+      if (!prev.has(key)) return prev;
+      const next = new Map(prev);
+      const meta = matchActivityMeta(it.name);
+      const { depositAmount, depositLabel } = getDepositInfo(meta, newVariantId);
+      const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta, newVariantId);
+      const curr = next.get(key);
+      next.set(key, { ...curr, variantId: newVariantId, depositAmount, depositLabel, fullPriceAmount, fullPriceLabel });
       return next;
     });
   }
@@ -98,12 +181,15 @@ export default function SignupPage({ onBack }) {
       name,
       email,
       phone,
-      total,
+      totalDeposit: total,
       selections: Array.from(selected.values()).map(s => ({
         date: s.date,
         activity: s.name,
+        variantId: s.variantId || null,
+        fullPriceLabel: s.fullPriceLabel,
         depositLabel: s.depositLabel,
         depositAmount: s.depositAmount,
+        reservationBacked: !!s.reservationBacked,
       })),
       ts: new Date().toISOString(),
     };
@@ -129,9 +215,9 @@ export default function SignupPage({ onBack }) {
             name: payload.name,
             email: payload.email,
             phone: payload.phone,
-            total: String(payload.total),
+            total: String(payload.totalDeposit),
             date: s.date,
-            activity: s.activity,
+            activity: s.activity + (s.variantId ? ` (${s.variantId})` : ""),
             depositlabel: s.depositLabel,
             depositamount: String(s.depositAmount || 0),
           });
@@ -142,9 +228,7 @@ export default function SignupPage({ onBack }) {
       // Force-fetch fresh roster CSV from Google (cache-bust)
       fetch(`${ROSTER_CSV_URL}&_=${Date.now()}`)
         .then(r => (r.ok ? r.text() : ""))
-        .then(txt => {
-          if (txt) setRoster(parseCSV(txt));
-        })
+        .then(txt => { if (txt) setRoster(parseCSV(txt)); })
         .catch(() => {});
 
       alert("Thanks! Your selections were recorded.");
@@ -152,8 +236,6 @@ export default function SignupPage({ onBack }) {
         const note = `CR Trip deposit — ${name || "Guest"}`;
         window.open(venmoUrl(total, note), "_blank", "noopener");
       }
-      // Optionally clear after submit:
-      // setSelected(new Map());
     } catch (err) {
       console.error(err);
       alert("Sorry, we could not submit your form. Please try again.");
@@ -171,9 +253,7 @@ export default function SignupPage({ onBack }) {
           const rows = parseCSV(text);
           setRoster(rows);
         }
-      } catch {
-        // ignore
-      }
+      } catch {/* ignore */}
     })();
   }, []);
 
@@ -199,15 +279,22 @@ export default function SignupPage({ onBack }) {
         {/* Header */}
         <header className="site-header" style={{ position: "static", margin: "0 0 18px" }}>
           <div className="site-header__titles">
-            <h1 className="site-title">Commit to Activities</h1>
+            <h1 className="site-title">Activity Sign-Ups & Deposits</h1>
             <p className="site-subtitle">
-              Pick your activities, see deposits, and send your total via Venmo. Your selections will be shared with the concierge.
+              We built a schedule that locks in the <strong>core activities most of us want</strong> while leaving plenty of open time to make the trip your own.
             </p>
           </div>
-          <p className="site-explainer">
-            Core items are reserved by popular demand; the rest are open to self-organize. Your spot is held once your deposit is received.
-          </p>
-          <div className="site-header__actions">
+
+          <div className="site-explainer" style={{ marginTop: 8, lineHeight: 1.5 }}>
+            If you pick one of the <strong>Open/Optional small-group items we’re reserving now</strong> (below), we’ll include it in our concierge reservation and collect a deposit here.
+            For other non-core ideas, we can <strong>share contact info</strong> so you can self-book—or tell us and we’ll see if we can add it.
+          </div>
+
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Badge tone="ok">Reservation-backed optional items: Mangrove • Waterfall Rappelling • Surf Lessons • Jungle Tubing</Badge>
+          </div>
+
+          <div className="site-header__actions" style={{ marginTop: 12 }}>
             <div className="actions__group">
               <button className="btn btn--rules" onClick={onBack}>Back</button>
               <a
@@ -230,7 +317,7 @@ export default function SignupPage({ onBack }) {
 
         {/* 3-column layout */}
         <div className="info-grid">
-          {/* Column 1: Schedule + checkboxes */}
+          {/* Column 1: Schedule + selections with pricing */}
           <section className="info-card info-card--span4">
             <div className="kicker">Step 1</div>
             <h2 className="info-title">Choose Activities</h2>
@@ -241,7 +328,15 @@ export default function SignupPage({ onBack }) {
                   <h3 className="day__title">{day.date}</h3>
                   <div className="day__list">
                     {day.items.map((it, idx) => {
-                      // Keep Arrival/Departure as non-selectable info
+                      const key = `${day.date}::${it.name}`;
+                      const meta = matchActivityMeta(it.name);
+                      const vId =
+                        variantChoice.get(key) ||
+                        meta?.defaultVariantId ||
+                        meta?.variants?.[0]?.id ||
+                        null;
+
+                      // non-selectable arrival/departure
                       if (/arrival|departure/i.test(it.name)) {
                         return (
                           <div key={idx} className="day__item">
@@ -252,33 +347,48 @@ export default function SignupPage({ onBack }) {
                         );
                       }
 
-                      const dep = detectDeposit(it.name);
-                      const key = `${day.date}::${it.name}`;
                       const isSelected = selected.has(key);
+                      const { depositLabel } = getDepositInfo(meta, vId);
+                      const { fullPriceLabel } = getFullPriceInfo(meta, vId);
 
                       return (
-                        <label key={idx} className="day__item" style={{ cursor: "pointer" }}>
+                        <div key={idx} className="day__item" style={{ gap: 8 }}>
                           <div className="day__item-main" style={{ alignItems: "flex-start" }}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() =>
-                                toggleItem({
-                                  key,
-                                  date: day.date,
-                                  name: it.name,
-                                  depositLabel: dep?.label || "TBD",
-                                  depositAmount: dep?.amount ?? 0,
-                                })
-                              }
+                              onChange={() => toggleItem(day, it)}
                               style={{ marginRight: 10, marginTop: 2 }}
+                              aria-label={`Select ${it.name}`}
                             />
-                            <span className="day__item-name">{it.name}</span>
+                            <div>
+                              <span className="day__item-name">{it.name}</span>{" "}
+                              {meta?.reservationBacked ? (
+                                <Badge tone="ok">We’ll reserve this</Badge>
+                              ) : (
+                                <Badge>Self-book or ask us</Badge>
+                              )}
+                              {meta?.variants?.length ? (
+                                <div style={{ marginTop: 6 }}>
+                                  <VariantPicker
+                                    meta={meta}
+                                    value={vId}
+                                    onChange={(nv) => updateVariant(day, it, nv)}
+                                  />
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="day__item-preferred">
-                            Deposit: {dep && dep.amount ? `$${dep.amount}` : "TBD"}
-                          </div>
-                        </label>
+
+                          <PriceLine fullPriceLabel={fullPriceLabel} depositLabel={depositLabel} />
+
+                          {meta?.depositRange && (
+                            <div className="muted" style={{ fontSize: 12 }}>
+                              Note: This tour’s deposit varies by operator ({`$${meta.depositRange[0]}–$${meta.depositRange[1]}`}).
+                              We’re using the lower amount now; if needed, we’ll adjust the difference after confirmation.
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -321,7 +431,7 @@ export default function SignupPage({ onBack }) {
               <div className="day__item" style={{ marginTop: 8 }}>
                 <div className="day__item-main">
                   <span className="day__item-name">Selected Activities</span>
-                  <span className="time-pill">Total ${total.toFixed(2)}</span>
+                  <span className="time-pill">Deposit Total ${total.toFixed(2)}</span>
                 </div>
                 <div className="day__item-preferred">
                   {selected.size === 0 ? (
@@ -330,9 +440,11 @@ export default function SignupPage({ onBack }) {
                     Array.from(selected.values()).map((s, i) => (
                       <div key={i} style={{ marginTop: 6 }}>
                         <strong>{s.date}</strong> — {s.name}
+                        {s.variantId ? ` (${s.variantId})` : ""} — {s.fullPriceLabel}
                         <span style={{ marginLeft: 8, color: "var(--muted)" }}>
-                          {s.depositLabel}: {s.depositAmount ? `$${s.depositAmount}` : "TBD"}
-                        </span>
+                          Deposit: {s.depositLabel}
+                        </span>{" "}
+                        {s.reservationBacked ? <Badge tone="ok">Reserved</Badge> : <Badge>Self-book</Badge>}
                       </div>
                     ))
                   )}
