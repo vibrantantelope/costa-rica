@@ -9,6 +9,10 @@
   --line: #e6eef6;
   --ring: rgba(18,184,134,.25);
   --orchid: #8b5cf6;        /* new: purple for a 3rd fun color */
+  --badge-bg: linear-gradient(90deg, var(--sun), var(--sea));
+  --badge-color: #063;
+  --roster-bg: linear-gradient(135deg, var(--sun), var(--sea));
+  --roster-color: #063;
 }
 
 *{box-sizing:border-box}
@@ -119,7 +123,14 @@ body{
 }
 .day__item-preferred{margin-top:6px; font-size:12px; color:var(--muted)}
 .roster-names{font-size:24px; font-weight:600; color:var(--ink); display:flex; flex-wrap:wrap; gap:8px}
-.roster-name{background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:2px 8px}
+.roster-name{
+  background: var(--roster-bg);
+  color: var(--roster-color);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 2px 4px rgba(15,23,42,.1);
+  border-radius:8px;
+  padding:2px 8px;
+}
 
 /* compact mode */
 body.compact .day__item{padding:8px 10px}
@@ -161,8 +172,8 @@ body.compact .days-grid{gap:12px}
   height:24px;
   line-height:24px;
   border-radius:999px;
-  background: linear-gradient(90deg, var(--sun), var(--sea));
-  color:#063;
+  background: var(--badge-bg);
+  color: var(--badge-color);
   font-size:14px;
   font-weight:800;
   vertical-align:middle;
