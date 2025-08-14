@@ -239,17 +239,8 @@ export default function SignupPage({ onBack }) {
                   <h3 className="day__title">{day.date}</h3>
                   <div className="day__list">
                     {day.items.map((it, idx) => {
+                      // Keep Arrival/Departure as non-selectable info
                       if (/arrival|departure/i.test(it.name)) {
-                        return (
-                          <div key={idx} className="day__item">
-                            <div className="day__item-main">
-                              <span className="day__item-name">{it.name}</span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      // also skip generic "Open/Free" so people don't commit to open blocks
-                      if (/open|free/i.test(it.name)) {
                         return (
                           <div key={idx} className="day__item">
                             <div className="day__item-main">
