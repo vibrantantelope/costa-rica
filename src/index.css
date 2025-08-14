@@ -118,7 +118,7 @@ body{
   color:#063; border-radius:999px; padding:6px 8px;
 }
 .day__item-preferred{margin-top:6px; font-size:12px; color:var(--muted)}
-.roster-names{font-size:14px; font-weight:600}
+.roster-names{font-size:24px; font-weight:600}
 
 /* compact mode */
 body.compact .day__item{padding:8px 10px}
@@ -166,6 +166,11 @@ body.compact .days-grid{gap:12px}
   font-weight:800;
   vertical-align:middle;
   margin-left:6px;
+}
+
+.signup-count{
+  font-size:24px;
+  font-weight:700;
 }
 
 /* landing */

@@ -381,7 +381,9 @@ export default function SignupPage({ onBack }) {
                         <div key={idx} className="day__item">
                           <div className="day__item-main">
                             <span className="day__item-name">{it.name}</span>
-                            <span className="badge">{people.length}</span>
+                            <span className="signup-count">
+                              (People Signed up = {people.length})
+                            </span>
                           </div>
                           {people.length > 0 && (
                             <div className="day__item-preferred roster-names">
