@@ -3,7 +3,7 @@ import RouteMap from "./RouteMap";
 
 export default function TipsPage({ onBack }) {
   return (
-    <>
+    <div className="page tips-page">
       <AnimatedBackground />
 
       <div className="container">
@@ -136,6 +136,6 @@ export default function TipsPage({ onBack }) {
           <button className="btn btn--rules" onClick={onBack}>Back</button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

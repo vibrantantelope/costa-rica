@@ -2,7 +2,7 @@ import AnimatedBackground from "./AnimatedBackground";
 
 export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
   return (
-    <>
+    <div className="page landing-page">
       <AnimatedBackground />
       <div className="landing">
         <h1 className="site-title">Costa Rica Trip 2025</h1>
@@ -25,6 +25,6 @@ export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
           <button className="btn btn--schedule" onClick={onEnter}>🗓️ Activity Schedule</button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

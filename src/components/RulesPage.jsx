@@ -2,7 +2,7 @@ import AnimatedBackground from "./AnimatedBackground";
 
 export default function RulesPage({ onBack }) {
   return (
-    <>
+    <div className="page rules-page">
       <AnimatedBackground />
       <div className="landing">
         <h1 className="site-title">🌴 Expectations &amp; House Rules 🐒</h1>
@@ -13,6 +13,6 @@ export default function RulesPage({ onBack }) {
         </ul>
         <button className="btn btn--rules" onClick={onBack}>Back</button>
       </div>
-    </>
+    </div>
   );
 }

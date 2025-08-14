@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AnimatedBackground from "./components/AnimatedBackground";
 import OptionPanel from "./components/OptionPanel";
 import LandingPage from "./components/LandingPage";
@@ -18,6 +19,7 @@ export default function App() {
     try { return new Set(JSON.parse(localStorage.getItem("cr-favs") || "[]")); }
     catch { return new Set(); }
   });
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     document.body.classList.toggle("compact", compact);
@@ -56,22 +58,25 @@ export default function App() {
     setPage(p);
   };
 
+  let pageContent;
+
   if (page === "landing") {
-    return <LandingPage onEnter={() => setPage("main")} onShowTips={() => navigate("tips")} onShowRules={() => navigate("rules")} />;
-  }
-
-  if (page === "tips") {
-    return <TipsPage onBack={() => setPage(prevPage || "landing")} />;
-  }
-
-  if (page === "rules") {
-    return <RulesPage onBack={() => setPage(prevPage || "landing")} />;
-  }
-
-  return (
-    <>
-      <AnimatedBackground />
-      <div className="container">
+    pageContent = (
+      <LandingPage
+        onEnter={() => setPage("main")}
+        onShowTips={() => navigate("tips")}
+        onShowRules={() => navigate("rules")}
+      />
+    );
+  } else if (page === "tips") {
+    pageContent = <TipsPage onBack={() => setPage(prevPage || "landing")} />;
+  } else if (page === "rules") {
+    pageContent = <RulesPage onBack={() => setPage(prevPage || "landing")} />;
+  } else {
+    pageContent = (
+      <div className="page page--schedule">
+        <AnimatedBackground />
+        <div className="container">
         <header className={`site-header ${isHeaderOpen ? "" : "collapsed"}`}>
           <div className="site-header__titles">
             <h1 className="site-title">Costa Rica Trip 2025</h1>
@@ -128,8 +133,6 @@ export default function App() {
           </button>
         </header>
 
-
-
         <OptionPanel
           id="panel-schedule"
           isActive={true}
@@ -138,6 +141,21 @@ export default function App() {
           onToggleFavorite={toggleFav}
         />
       </div>
-    </>
+      </div>
+    );
+  }
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={page}
+        initial={prefersReducedMotion ? false : { opacity: 0, x: 20 }}
+        animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+        exit={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        {pageContent}
+      </motion.div>
+    </AnimatePresence>
   );
 }
