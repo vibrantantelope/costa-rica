@@ -2,17 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import AnimatedBackground from "./AnimatedBackground";
 import { schedule } from "../data/schedule";
 import {
+  OPTIONAL_SIGNUPS_KEYS,
+  getMetaByKey,
   matchActivityMeta,
   getDepositInfo,
   getFullPriceInfo,
-  detectDeposit // kept for backwards compatibility
+  detectDeposit
 } from "../data/deposits";
 
 // 👉 Set these:
 const VENMO_USER = "John-Kenny-16";
-// Cloudflare Worker proxy → Apps Script
 const SUBMIT_ENDPOINT = "https://cr-form-proxy.costaricaform.workers.dev";
-// Published CSV (roster)
 const ROSTER_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-DYvrR3GHNdhO129OGX7ba1Gg4YdBzZf1aB6_yvQewqinyCcM_J3Gf8AahziTqGaknPPGHxR47dUz/pub?output=csv";
 
@@ -27,7 +27,7 @@ function venmoUrl(amount, note) {
   return `https://venmo.com/?${params.toString()}`;
 }
 
-// Tiny CSV parser; normalizes headers to lowercase keys
+// Tiny CSV parser
 function parseCSV(text) {
   const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
   if (rows.length === 0) return [];
@@ -40,8 +40,7 @@ function parseCSV(text) {
   });
 }
 
-/** Small inline components ************************************************************/
-
+// Simple badge
 function Badge({ children, tone = "info" }) {
   const bg =
     tone === "ok" ? "var(--ok-25)" :
@@ -63,24 +62,6 @@ function Badge({ children, tone = "info" }) {
   );
 }
 
-function VariantPicker({ meta, value, onChange }) {
-  if (!meta?.variants || meta.variants.length === 0) return null;
-  return (
-    <select
-      className="input"
-      value={value || meta.defaultVariantId || meta.variants[0]?.id}
-      onChange={e => onChange(e.target.value)}
-      style={{ width: "auto", paddingRight: 28 }}
-    >
-      {meta.variants.map(v => (
-        <option key={v.id} value={v.id}>
-          {v.name}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 function PriceLine({ fullPriceLabel, depositLabel }) {
   return (
     <div className="day__item-preferred" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -90,7 +71,10 @@ function PriceLine({ fullPriceLabel, depositLabel }) {
   );
 }
 
-/** Main Page *************************************************************************/
+// Determines if a schedule item is your “Open/Optional Sign-Ups (smaller-group items)” row
+function isOpenOptionalRow(name) {
+  return /open\/optional sign-ups/i.test(name) || /open\/optional/i.test(name);
+}
 
 export default function SignupPage({ onBack }) {
   // user info
@@ -98,70 +82,79 @@ export default function SignupPage({ onBack }) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  // per-item UI state: chosen variant for items that have one
-  // Map<itemKey, variantId>
-  const [variantChoice, setVariantChoice] = useState(new Map());
-
-  // selections: Map<key, {date, name, variantId, deposit, fullPrice, labels..., reservationBacked}>
+  // selections: Map<key, {date, name, depositAmount, depositLabel, fullPriceAmount, fullPriceLabel, reservationBacked}>
   const [selected, setSelected] = useState(new Map());
 
   // loading + roster
   const [submitting, setSubmitting] = useState(false);
   const [roster, setRoster] = useState([]);
 
-  // compute total deposit
-  const total = useMemo(() => {
+  // Totals
+  const totalDeposit = useMemo(() => {
     let t = 0;
     for (const v of selected.values()) t += v.depositAmount || 0;
     return t;
   }, [selected]);
 
-  function toggleItem(day, it) {
+  const { estTotal, hadUnknown } = useMemo(() => {
+    let sum = 0;
+    let unknown = false;
+    for (const v of selected.values()) {
+      if (typeof v.fullPriceAmount === "number" && !Number.isNaN(v.fullPriceAmount)) {
+        sum += v.fullPriceAmount;
+      } else {
+        // ranges / unknowns are not included in numeric estimate
+        unknown = true;
+      }
+    }
+    return { estTotal: sum, hadUnknown: unknown };
+  }, [selected]);
+
+  function toggleTopLevelItem(day, it) {
     const key = `${day.date}::${it.name}`;
     const meta = matchActivityMeta(it.name);
-    const vId = variantChoice.get(key) || meta?.defaultVariantId || meta?.variants?.[0]?.id || null;
-
-    const { depositAmount, depositLabel } = getDepositInfo(meta, vId);
-    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta, vId);
+    const { depositAmount, depositLabel } = getDepositInfo(meta);
+    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta);
 
     setSelected(prev => {
       const next = new Map(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
+      if (next.has(key)) next.delete(key);
+      else
         next.set(key, {
           key,
           date: day.date,
           name: it.name,
-          variantId: vId,
           depositAmount,
           depositLabel,
           fullPriceAmount,
           fullPriceLabel,
-          reservationBacked: !!meta?.reservationBacked,
+          reservationBacked: !!meta?.reservationBacked
         });
-      }
       return next;
     });
   }
 
-  function updateVariant(day, it, newVariantId) {
-    const key = `${day.date}::${it.name}`;
-    setVariantChoice(prev => {
-      const copy = new Map(prev);
-      copy.set(key, newVariantId);
-      return copy;
-    });
+  function toggleOptionalSubItem(day, subKey) {
+    const meta = getMetaByKey(subKey);
+    if (!meta) return;
+    const key = `${day.date}::${meta.label}`;
+    const { depositAmount, depositLabel } = getDepositInfo(meta);
+    const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta);
 
-    // If currently selected, refresh its pricing with the new variant
     setSelected(prev => {
-      if (!prev.has(key)) return prev;
       const next = new Map(prev);
-      const meta = matchActivityMeta(it.name);
-      const { depositAmount, depositLabel } = getDepositInfo(meta, newVariantId);
-      const { fullPriceAmount, fullPriceLabel } = getFullPriceInfo(meta, newVariantId);
-      const curr = next.get(key);
-      next.set(key, { ...curr, variantId: newVariantId, depositAmount, depositLabel, fullPriceAmount, fullPriceLabel });
+      if (next.has(key)) next.delete(key);
+      else
+        next.set(key, {
+          key,
+          date: day.date,
+          name: meta.label,
+          depositAmount,
+          depositLabel,
+          fullPriceAmount,
+          fullPriceLabel,
+          reservationBacked: true
+        });
       return next;
     });
   }
@@ -181,11 +174,10 @@ export default function SignupPage({ onBack }) {
       name,
       email,
       phone,
-      totalDeposit: total,
+      totalDeposit, // ← what we actually collect now
       selections: Array.from(selected.values()).map(s => ({
         date: s.date,
         activity: s.name,
-        variantId: s.variantId || null,
         fullPriceLabel: s.fullPriceLabel,
         depositLabel: s.depositLabel,
         depositAmount: s.depositAmount,
@@ -202,11 +194,9 @@ export default function SignupPage({ onBack }) {
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.ok === false) {
-        throw new Error(data.error || "Submit failed");
-      }
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Submit failed");
 
-      // Instant local roster update so submitter sees themselves immediately
+      // instant local roster update
       setRoster(prev => {
         const updated = [...prev];
         payload.selections.forEach(s => {
@@ -217,7 +207,7 @@ export default function SignupPage({ onBack }) {
             phone: payload.phone,
             total: String(payload.totalDeposit),
             date: s.date,
-            activity: s.activity + (s.variantId ? ` (${s.variantId})` : ""),
+            activity: s.activity,
             depositlabel: s.depositLabel,
             depositamount: String(s.depositAmount || 0),
           });
@@ -225,16 +215,16 @@ export default function SignupPage({ onBack }) {
         return updated;
       });
 
-      // Force-fetch fresh roster CSV from Google (cache-bust)
+      // refresh from CSV
       fetch(`${ROSTER_CSV_URL}&_=${Date.now()}`)
         .then(r => (r.ok ? r.text() : ""))
         .then(txt => { if (txt) setRoster(parseCSV(txt)); })
         .catch(() => {});
 
       alert("Thanks! Your selections were recorded.");
-      if (total > 0) {
+      if (totalDeposit > 0) {
         const note = `CR Trip deposit — ${name || "Guest"}`;
-        window.open(venmoUrl(total, note), "_blank", "noopener");
+        window.open(venmoUrl(totalDeposit, note), "_blank", "noopener");
       }
     } catch (err) {
       console.error(err);
@@ -253,7 +243,7 @@ export default function SignupPage({ onBack }) {
           const rows = parseCSV(text);
           setRoster(rows);
         }
-      } catch {/* ignore */}
+      } catch {}
     })();
   }, []);
 
@@ -286,38 +276,19 @@ export default function SignupPage({ onBack }) {
           </div>
 
           <div className="site-explainer" style={{ marginTop: 8, lineHeight: 1.5 }}>
-            If you pick one of the <strong>Open/Optional small-group items we’re reserving now</strong> (below), we’ll include it in our concierge reservation and collect a deposit here.
-            For other non-core ideas, we can <strong>share contact info</strong> so you can self-book—or tell us and we’ll see if we can add it.
+            If you pick one of the <strong>Open/Optional small-group items we’re reserving now</strong> (below),
+            we’ll include it in our concierge reservation and collect a deposit here. For other non-core ideas,
+            we can share contact info to self-book—or tell us and we’ll see if we can add it.
           </div>
 
           <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Badge tone="ok">Reservation-backed optional items: Mangrove • Waterfall Rappelling • Surf Lessons • Jungle Tubing</Badge>
           </div>
-
-          <div className="site-header__actions" style={{ marginTop: 12 }}>
-            <div className="actions__group">
-              <button className="btn btn--rules" onClick={onBack}>Back</button>
-              <a
-                className="btn btn--primary"
-                aria-disabled={total <= 0}
-                onClick={e => {
-                  if (total <= 0) { e.preventDefault(); return; }
-                  const note = `CR Trip deposit — ${name || "Guest"}`;
-                  window.open(venmoUrl(total, note), "_blank", "noopener");
-                }}
-                href={total > 0 ? venmoUrl(total, `CR Trip deposit — ${name || "Guest"}`) : undefined}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                Venmo Total (${total.toFixed(2)})
-              </a>
-            </div>
-          </div>
         </header>
 
         {/* 3-column layout */}
         <div className="info-grid">
-          {/* Column 1: Schedule + selections with pricing */}
+          {/* Column 1: Schedule + selections, with optional checklist where applicable */}
           <section className="info-card info-card--span4">
             <div className="kicker">Step 1</div>
             <h2 className="info-title">Choose Activities</h2>
@@ -328,15 +299,7 @@ export default function SignupPage({ onBack }) {
                   <h3 className="day__title">{day.date}</h3>
                   <div className="day__list">
                     {day.items.map((it, idx) => {
-                      const key = `${day.date}::${it.name}`;
-                      const meta = matchActivityMeta(it.name);
-                      const vId =
-                        variantChoice.get(key) ||
-                        meta?.defaultVariantId ||
-                        meta?.variants?.[0]?.id ||
-                        null;
-
-                      // non-selectable arrival/departure
+                      // Non-selectable info rows
                       if (/arrival|departure/i.test(it.name)) {
                         return (
                           <div key={idx} className="day__item">
@@ -347,48 +310,64 @@ export default function SignupPage({ onBack }) {
                         );
                       }
 
+                      // Optional checklist block
+                      if (isOpenOptionalRow(it.name)) {
+                        return (
+                          <div key={idx} className="day__item" style={{ display: "block" }}>
+                            <div className="day__item-main" style={{ alignItems: "flex-start" }}>
+                              <span className="day__item-name">{it.name}</span>
+                              <div style={{ marginTop: 6 }}><Badge tone="ok">We’ll reserve these if you check them</Badge></div>
+                            </div>
+
+                            <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+                              {OPTIONAL_SIGNUPS_KEYS.map(subKey => {
+                                const meta = getMetaByKey(subKey);
+                                if (!meta) return null;
+                                const selKey = `${day.date}::${meta.label}`;
+                                const isSelected = selected.has(selKey);
+                                const { depositLabel } = getDepositInfo(meta);
+                                const { fullPriceLabel } = getFullPriceInfo(meta);
+
+                                return (
+                                  <label key={subKey} className="day__item" style={{ cursor: "pointer", margin: 0 }}>
+                                    <div className="day__item-main" style={{ alignItems: "flex-start" }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => toggleOptionalSubItem(day, subKey)}
+                                        style={{ marginRight: 10, marginTop: 2 }}
+                                      />
+                                      <span className="day__item-name">{meta.label}</span>
+                                    </div>
+                                    <PriceLine fullPriceLabel={fullPriceLabel} depositLabel={depositLabel} />
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Regular selectable (if any other rows you want selectable)
+                      const key = `${day.date}::${it.name}`;
                       const isSelected = selected.has(key);
-                      const { depositLabel } = getDepositInfo(meta, vId);
-                      const { fullPriceLabel } = getFullPriceInfo(meta, vId);
+                      const meta = matchActivityMeta(it.name);
+                      const { depositLabel } = getDepositInfo(meta);
+                      const { fullPriceLabel } = getFullPriceInfo(meta);
 
                       return (
-                        <div key={idx} className="day__item" style={{ gap: 8 }}>
+                        <label key={idx} className="day__item" style={{ cursor: "pointer" }}>
                           <div className="day__item-main" style={{ alignItems: "flex-start" }}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleItem(day, it)}
+                              onChange={() => toggleTopLevelItem(day, it)}
                               style={{ marginRight: 10, marginTop: 2 }}
-                              aria-label={`Select ${it.name}`}
                             />
-                            <div>
-                              <span className="day__item-name">{it.name}</span>{" "}
-                              {meta?.reservationBacked ? (
-                                <Badge tone="ok">We’ll reserve this</Badge>
-                              ) : (
-                                <Badge>Self-book or ask us</Badge>
-                              )}
-                              {meta?.variants?.length ? (
-                                <div style={{ marginTop: 6 }}>
-                                  <VariantPicker
-                                    meta={meta}
-                                    value={vId}
-                                    onChange={(nv) => updateVariant(day, it, nv)}
-                                  />
-                                </div>
-                              ) : null}
-                            </div>
+                            <span className="day__item-name">{it.name}</span>
                           </div>
-
                           <PriceLine fullPriceLabel={fullPriceLabel} depositLabel={depositLabel} />
-
-                          {meta?.depositRange && (
-                            <div className="muted" style={{ fontSize: 12 }}>
-                              Note: This tour’s deposit varies by operator ({`$${meta.depositRange[0]}–$${meta.depositRange[1]}`}).
-                              We’re using the lower amount now; if needed, we’ll adjust the difference after confirmation.
-                            </div>
-                          )}
-                        </div>
+                        </label>
                       );
                     })}
                   </div>
@@ -404,43 +383,35 @@ export default function SignupPage({ onBack }) {
 
             <form onSubmit={submitForm}>
               <div className="toolbar" style={{ marginTop: 0 }}>
-                <input
-                  className="input"
-                  placeholder="Full name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                />
-                <input
-                  className="input"
-                  placeholder="Email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-                <input
-                  className="input"
-                  placeholder="Phone"
-                  type="tel"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                />
+                <input className="input" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
+                <input className="input" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <input className="input" placeholder="Phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
 
               <div className="day__item" style={{ marginTop: 8 }}>
                 <div className="day__item-main">
                   <span className="day__item-name">Selected Activities</span>
-                  <span className="time-pill">Deposit Total ${total.toFixed(2)}</span>
+                  <span className="time-pill">Deposit Total ${totalDeposit.toFixed(2)}</span>
                 </div>
-                <div className="day__item-preferred">
+
+                {/* NEW: Estimated Total (per person) */}
+                <div className="day__item-preferred" style={{ marginTop: 6 }}>
+                  <strong>Estimated Total (per person):</strong> ${estTotal.toFixed(2)}
+                  {hadUnknown && (
+                    <span className="muted" style={{ marginLeft: 8 }}>
+                      (excludes items with range/unknown pricing)
+                    </span>
+                  )}
+                </div>
+
+                <div className="day__item-preferred" style={{ marginTop: 6 }}>
                   {selected.size === 0 ? (
                     <em>No selections yet.</em>
                   ) : (
                     Array.from(selected.values()).map((s, i) => (
                       <div key={i} style={{ marginTop: 6 }}>
                         <strong>{s.date}</strong> — {s.name}
-                        {s.variantId ? ` (${s.variantId})` : ""} — {s.fullPriceLabel}
+                        <span style={{ marginLeft: 8 }}>{s.fullPriceLabel}</span>
                         <span style={{ marginLeft: 8, color: "var(--muted)" }}>
                           Deposit: {s.depositLabel}
                         </span>{" "}
@@ -454,22 +425,23 @@ export default function SignupPage({ onBack }) {
               <div className="btn-row">
                 <a
                   className="btn btn--primary"
-                  aria-disabled={total <= 0}
+                  aria-disabled={totalDeposit <= 0}
                   onClick={e => {
-                    if (total <= 0) { e.preventDefault(); return; }
+                    if (totalDeposit <= 0) { e.preventDefault(); return; }
                     const note = `CR Trip deposit — ${name || "Guest"}`;
-                    window.open(venmoUrl(total, note), "_blank", "noopener");
+                    window.open(venmoUrl(totalDeposit, note), "_blank", "noopener");
                   }}
-                  href={total > 0 ? venmoUrl(total, `CR Trip deposit — ${name || "Guest"}`) : undefined}
+                  href={totalDeposit > 0 ? venmoUrl(totalDeposit, `CR Trip deposit — ${name || "Guest"}`) : undefined}
                   target="_blank"
                   rel="noreferrer noopener"
                 >
-                  Venmo ${total.toFixed(2)}
+                  Venmo ${totalDeposit.toFixed(2)}
                 </a>
                 <button className="btn btn--rules" type="submit" disabled={submitting || selected.size === 0}>
                   {submitting ? "Submitting…" : "Submit Selections"}
                 </button>
               </div>
+
               <p className="muted" style={{ marginTop: 8 }}>
                 By submitting, you agree that your spot is held once deposit is received. Some tours may have stricter cancellation terms.
               </p>
