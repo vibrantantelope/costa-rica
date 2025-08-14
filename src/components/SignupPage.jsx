@@ -387,7 +387,9 @@ export default function SignupPage({ onBack }) {
                           </div>
                           {people.length > 0 && (
                             <div className="day__item-preferred roster-names">
-                              {people.join(", ")}
+                              {people.map(person => (
+                                <span key={person} className="roster-name">{person}</span>
+                              ))}
                             </div>
                           )}
                         </div>
