@@ -4,10 +4,10 @@ import { schedule } from "../data/schedule";
 import { detectDeposit } from "../data/deposits";
 
 // 👉 Set these:
-const VENMO_USER = "John-Kenny-16"; 
-// Google Apps Script Web App URL 
+const VENMO_USER = "John-Kenny-16";
+// Proxy endpoint (Cloudflare Worker)
 const SUBMIT_ENDPOINT = "https://cr-form-proxy.costaricaform.workers.dev";
-// Public CSV of the roster sheet
+// Published CSV of the roster sheet (same sheet your Apps Script writes to)
 const ROSTER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-DYvrR3GHNdhO129OGX7ba1Gg4YdBzZf1aB6_yvQewqinyCcM_J3Gf8AahziTqGaknPPGHxR47dUz/pub?output=csv";
 
 function venmoUrl(amount, note) {
@@ -16,40 +16,43 @@ function venmoUrl(amount, note) {
     audience: "friends",
     recipients: VENMO_USER,
     amount: (amount || 0).toFixed(2),
-    note
+    note,
   });
   return `https://venmo.com/?${params.toString()}`;
 }
 
+// Tiny CSV parser; normalizes headers to lowercase keys
 function parseCSV(text) {
-  // tiny CSV parser; assumes no quoted commas
   const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
+  if (rows.length === 0) return [];
   const [head, ...rest] = rows;
-  return rest.map(r => Object.fromEntries(r.map((v,i)=>[head[i], v])));
+  const normHead = head.map(h => String(h || "").trim().toLowerCase());
+  return rest.map(r => {
+    const obj = {};
+    r.forEach((v, i) => (obj[normHead[i] || `col${i}`] = v));
+    return obj;
+  });
 }
 
 export default function SignupPage({ onBack }) {
   // user info
-  const [name, setName]   = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  // selections: Map<key, {date, itemName, depositLabel, depositAmount}>
+  // selections: Map<key, {date, name, depositLabel, depositAmount}>
   const [selected, setSelected] = useState(new Map());
 
   // loading + roster
   const [submitting, setSubmitting] = useState(false);
   const [roster, setRoster] = useState([]);
 
-  // build a flat list of selectable items from schedule
+  // Build a flat list of selectable items from schedule (not strictly needed for rendering, but useful if you need it later)
   const items = useMemo(() => {
     const out = [];
     for (const day of schedule) {
       for (const it of day.items) {
-        // Only show things that look like an activity; skip vague lines if you want
-        // Here we include all, but you can skip “Arrival/Departure/Open” lines:
-        if (/arrival|departure/i.test(it.name)) continue;
-
+        if (/arrival|departure|open|free/i.test(it.name)) continue;
         const dep = detectDeposit(it.name);
         out.push({
           key: `${day.date}::${it.name}`,
@@ -72,28 +75,33 @@ export default function SignupPage({ onBack }) {
   function toggleItem(item) {
     setSelected(prev => {
       const next = new Map(prev);
-      if (next.has(item.key)) {
-        next.delete(item.key);
-      } else {
-        next.set(item.key, item);
-      }
+      if (next.has(item.key)) next.delete(item.key);
+      else next.set(item.key, item);
       return next;
     });
   }
 
   async function submitForm(e) {
     e.preventDefault();
-    if (!name || !email) { alert("Please enter your name and email."); return; }
-    if (selected.size === 0) { alert("Please select at least one activity."); return; }
+    if (!name || !email) {
+      alert("Please enter your name and email.");
+      return;
+    }
+    if (selected.size === 0) {
+      alert("Please select at least one activity.");
+      return;
+    }
 
     const payload = {
-      name, email, phone,
+      name,
+      email,
+      phone,
       total,
       selections: Array.from(selected.values()).map(s => ({
         date: s.date,
         activity: s.name,
         depositLabel: s.depositLabel,
-        depositAmount: s.depositAmount
+        depositAmount: s.depositAmount,
       })),
       ts: new Date().toISOString(),
     };
@@ -105,12 +113,44 @@ export default function SignupPage({ onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(await res.text());
-      const { ok, message } = await res.json().catch(() => ({ ok: true, message: "Saved" }));
-      alert(ok ? "Thanks! Your selections were recorded." : (message || "Saved"));
-      // Optionally open Venmo after submit:
-      window.open(venmoUrl(total, `CR Trip deposit — ${name}`), "_blank");
-      // clear selections if you want
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || "Submit failed");
+      }
+
+      // Instant local roster update so submitter sees themselves immediately
+      setRoster(prev => {
+        const updated = [...prev];
+        payload.selections.forEach(s => {
+          updated.push({
+            timestamp: payload.ts,
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone,
+            total: String(payload.total),
+            date: s.date,
+            activity: s.activity,
+            depositlabel: s.depositLabel,
+            depositamount: String(s.depositAmount || 0),
+          });
+        });
+        return updated;
+      });
+
+      // Force-fetch fresh roster CSV from Google (cache-bust)
+      fetch(`${ROSTER_CSV_URL}&_=${Date.now()}`)
+        .then(r => (r.ok ? r.text() : ""))
+        .then(txt => {
+          if (txt) setRoster(parseCSV(txt));
+        })
+        .catch(() => {});
+
+      alert("Thanks! Your selections were recorded.");
+      if (total > 0) {
+        const note = `CR Trip deposit — ${name || "Guest"}`;
+        window.open(venmoUrl(total, note), "_blank", "noopener");
+      }
+      // Optionally clear after submit:
       // setSelected(new Map());
     } catch (err) {
       console.error(err);
@@ -121,16 +161,17 @@ export default function SignupPage({ onBack }) {
   }
 
   useEffect(() => {
-    // Load roster from the published CSV (name, date, activity columns)
     (async () => {
       try {
-        const res = await fetch(ROSTER_CSV_URL);
+        const res = await fetch(ROSTER_CSV_URL + `&cb=${Date.now()}`);
         if (res.ok) {
           const text = await res.text();
           const rows = parseCSV(text);
           setRoster(rows);
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
     })();
   }, []);
 
@@ -138,9 +179,9 @@ export default function SignupPage({ onBack }) {
   const rosterByDay = useMemo(() => {
     const m = new Map();
     for (const row of roster) {
-      const date = row.date || row.Date || row.DATE || "Unknown";
-      const act  = row.activity || row.Activity || row.ACTIVITY || "";
-      const who  = row.name || row.Name || row.NAME || "";
+      const date = row.date || "Unknown";
+      const act = row.activity || "";
+      const who = row.name || "";
       if (!m.has(date)) m.set(date, new Map());
       const inner = m.get(date);
       if (!inner.has(act)) inner.set(act, []);
@@ -167,7 +208,18 @@ export default function SignupPage({ onBack }) {
           <div className="site-header__actions">
             <div className="actions__group">
               <button className="btn btn--rules" onClick={onBack}>Back</button>
-              <a className="btn btn--primary" href={venmoUrl(total, "CR Trip deposit")} target="_blank" rel="noreferrer">
+              <a
+                className="btn btn--primary"
+                aria-disabled={total <= 0}
+                onClick={e => {
+                  if (total <= 0) { e.preventDefault(); return; }
+                  const note = `CR Trip deposit — ${name || "Guest"}`;
+                  window.open(venmoUrl(total, note), "_blank", "noopener");
+                }}
+                href={total > 0 ? venmoUrl(total, `CR Trip deposit — ${name || "Guest"}`) : undefined}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
                 Venmo Total (${total.toFixed(2)})
               </a>
             </div>
@@ -196,28 +248,42 @@ export default function SignupPage({ onBack }) {
                           </div>
                         );
                       }
+                      // also skip generic "Open/Free" so people don't commit to open blocks
+                      if (/open|free/i.test(it.name)) {
+                        return (
+                          <div key={idx} className="day__item">
+                            <div className="day__item-main">
+                              <span className="day__item-name">{it.name}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+
                       const dep = detectDeposit(it.name);
                       const key = `${day.date}::${it.name}`;
                       const isSelected = selected.has(key);
+
                       return (
                         <label key={idx} className="day__item" style={{ cursor: "pointer" }}>
                           <div className="day__item-main" style={{ alignItems: "flex-start" }}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleItem({
-                                key,
-                                date: day.date,
-                                name: it.name,
-                                depositLabel: dep?.label || "TBD",
-                                depositAmount: dep?.amount ?? 0
-                              })}
+                              onChange={() =>
+                                toggleItem({
+                                  key,
+                                  date: day.date,
+                                  name: it.name,
+                                  depositLabel: dep?.label || "TBD",
+                                  depositAmount: dep?.amount ?? 0,
+                                })
+                              }
                               style={{ marginRight: 10, marginTop: 2 }}
                             />
                             <span className="day__item-name">{it.name}</span>
                           </div>
                           <div className="day__item-preferred">
-                            Deposit: {dep ? `$${dep.amount}` : "TBD"}
+                            Deposit: {dep && dep.amount ? `$${dep.amount}` : "TBD"}
                           </div>
                         </label>
                       );
@@ -235,9 +301,28 @@ export default function SignupPage({ onBack }) {
 
             <form onSubmit={submitForm}>
               <div className="toolbar" style={{ marginTop: 0 }}>
-                <input className="input" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} />
-                <input className="input" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-                <input className="input" placeholder="Phone" value={phone} onChange={e=>setPhone(e.target.value)} />
+                <input
+                  className="input"
+                  placeholder="Full name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                />
+                <input
+                  className="input"
+                  placeholder="Email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+                <input
+                  className="input"
+                  placeholder="Phone"
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                />
               </div>
 
               <div className="day__item" style={{ marginTop: 8 }}>
@@ -264,12 +349,19 @@ export default function SignupPage({ onBack }) {
               <div className="btn-row">
                 <a
                   className="btn btn--primary"
-                  href={venmoUrl(total, `CR Trip deposit — ${name || "Guest"}`)}
-                  target="_blank" rel="noreferrer"
+                  aria-disabled={total <= 0}
+                  onClick={e => {
+                    if (total <= 0) { e.preventDefault(); return; }
+                    const note = `CR Trip deposit — ${name || "Guest"}`;
+                    window.open(venmoUrl(total, note), "_blank", "noopener");
+                  }}
+                  href={total > 0 ? venmoUrl(total, `CR Trip deposit — ${name || "Guest"}`) : undefined}
+                  target="_blank"
+                  rel="noreferrer noopener"
                 >
                   Venmo ${total.toFixed(2)}
                 </a>
-                <button className="btn btn--rules" type="submit" disabled={submitting}>
+                <button className="btn btn--rules" type="submit" disabled={submitting || selected.size === 0}>
                   {submitting ? "Submitting…" : "Submit Selections"}
                 </button>
               </div>
