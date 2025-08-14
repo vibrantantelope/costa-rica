@@ -6,7 +6,7 @@ import { detectDeposit } from "../data/deposits";
 // 👉 Set these:
 const VENMO_USER = "John-Kenny-16"; 
 // Google Apps Script Web App URL 
-const SUBMIT_ENDPOINT = "https://script.google.com/macros/s/AKfycbzZY-BmzLZVWXAJ7bKl0Z2J71Qm6kw6ECNvO8PKarEsvDdzSX7LLe3QnR7B0qRpW4CD/exec";
+const SUBMIT_ENDPOINT = "https://cr-form-proxy.costaricaform.workers.dev";
 // Public CSV of the roster sheet
 const ROSTER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-DYvrR3GHNdhO129OGX7ba1Gg4YdBzZf1aB6_yvQewqinyCcM_J3Gf8AahziTqGaknPPGHxR47dUz/pub?output=csv";
 
