@@ -384,7 +384,7 @@ export default function SignupPage({ onBack }) {
                             <span className="badge">{people.length}</span>
                           </div>
                           {people.length > 0 && (
-                            <div className="day__item-preferred" style={{ fontSize: 12 }}>
+                            <div className="day__item-preferred roster-names">
                               {people.join(", ")}
                             </div>
                           )}
