@@ -13,7 +13,7 @@ export default function LandingPage({ onEnter, onShowTips, onShowRules }) {
             Welcome! This mini-site has everything we need for a smooth trip.
           </p>
           <div className="intro-list">
-            <p>🗓️ <strong>Activity Schedule</strong> — the day-by-day plan sent to the concierge.</p>
+            <p>🗓️ <strong>Activities</strong> — the day-by-day plan sent to the concierge.</p>
             <p>🌴 <strong>Tips & Coordination</strong> — flights, money, rides, packing, and local basics.</p>
             <p>🛡️ <strong>Rules & Expectations</strong> — safety guidelines and group norms so everyone has fun.</p>
           </div>
