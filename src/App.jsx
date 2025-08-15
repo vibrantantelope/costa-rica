@@ -100,10 +100,10 @@ export default function App() {
           </div>
 
           <p className="site-explainer">
-            We scheduled a few <strong>Core activities</strong> by popular demand
-            and left the rest as <strong>Open time</strong> for you to book (or
-            chill) individually. We’ve shared both the Core picks and other
-            possibilities with the concierge.
+            We scheduled a few <strong>Majority Preference activities</strong> by
+            popular demand and left the rest as <strong>Open time</strong> for you
+            to book (or chill) individually. We’ve shared both the Majority
+            Preference picks and Other Preference options with the concierge.
           </p>
 
           {/* Organized actions: utilities on the left, nav on the right */}
@@ -137,9 +137,9 @@ export default function App() {
 
             <div className="actions__group">
               <div className="legend">
-                <span className="tag tag--core">Core</span>
+                <span className="tag tag--majority">Majority Preference</span>
                 <span className="tag tag--open">Open</span>
-                <span className="tag tag--optional">Optional</span>
+                <span className="tag tag--other">Other Preference</span>
                 <span className="tag tag--depart">Departure</span>
               </div>
               <button className="btn btn--home" onClick={() => navigate("landing")}>

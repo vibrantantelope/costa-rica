@@ -4,8 +4,10 @@ import React from "react";
 function classify(name = "") {
   const n = name.toLowerCase();
   if (n.includes("departure")) return { kind: "depart", label: "Departure" };
-  if (n.includes("core booking")) return { kind: "core", label: "Core" };
-  if (n.includes("optional")) return { kind: "optional", label: "Optional" };
+  if (n.includes("majority preference"))
+    return { kind: "majority", label: "Majority Preference" };
+  if (n.includes("other preference"))
+    return { kind: "other", label: "Other Preference" };
   if (/—\s*open\b/i.test(name) || n.endsWith(" — Open".toLowerCase())) {
     return { kind: "open", label: "Open" };
   }

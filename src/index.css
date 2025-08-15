@@ -412,12 +412,12 @@ body.compact .days-grid{gap:12px}
   background:#fbfeff;
   border:1px solid #eaf3fb;
 }
-.tag--core{
+.tag--majority{
   background: linear-gradient(135deg, var(--sea), var(--sun));
   color:#063; border-color: transparent;
 }
 .tag--open{ background:#eef8ff; color:#044; }
-.tag--optional{
+.tag--other{
   background: linear-gradient(135deg, var(--orchid), var(--sea));
   color:#fff; border-color: transparent;
 }
@@ -430,14 +430,14 @@ body.compact .days-grid{gap:12px}
   position:absolute; left:-1px; top:-1px; bottom:-1px; width:6px;
   border-top-left-radius:12px; border-bottom-left-radius:12px;
 }
-.item--core{ background:#f7fffb; }
-.item--core::before{ background: linear-gradient(180deg, var(--sea), var(--sun)); }
+.item--majority{ background:#f7fffb; }
+.item--majority::before{ background: linear-gradient(180deg, var(--sea), var(--sun)); }
 
 .item--open{ background:#ffffff; }
 .item--open::before{ background: #dfeffb; }
 
-.item--optional{ background:#f7f3ff; }
-.item--optional::before{ background: linear-gradient(180deg, var(--orchid), var(--sea)); }
+.item--other{ background:#f7f3ff; }
+.item--other::before{ background: linear-gradient(180deg, var(--orchid), var(--sea)); }
 
 .item--depart{ background:#fafafa; }
 

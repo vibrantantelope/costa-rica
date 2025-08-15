@@ -71,9 +71,9 @@ function PriceLine({ fullPriceLabel, depositLabel }) {
   );
 }
 
-// Determines if a schedule item is your “Open/Optional Sign-Ups (smaller-group items)” row
+// Determines if a schedule item is your “Other Preference Sign-Ups (smaller-group items)” row
 function isOpenOptionalRow(name) {
-  return /open\/optional sign-ups/i.test(name) || /open\/optional/i.test(name);
+  return /other preference sign-ups/i.test(name) || /other preference/i.test(name);
 }
 
 export default function SignupPage({ onBack }) {
@@ -282,24 +282,24 @@ export default function SignupPage({ onBack }) {
           <div className="site-header__titles">
             <h1 className="site-title">Activity Sign-Ups & Deposits</h1>
             <p className="site-subtitle">
-              We built a schedule that locks in the <strong>core activities most of us want</strong> while leaving plenty of open time to make the trip your own.
+              We built a schedule that locks in the <strong>Majority Preference activities most of us want</strong> while leaving plenty of open time to make the trip your own.
             </p>
           </div>
 
           <div className="site-explainer" style={{ marginTop: 8, lineHeight: 1.5 }}>
-            If you pick one of the <strong>Open/Optional small-group items we’re reserving now</strong> (below),
-            we’ll include it in our concierge reservation and collect a deposit here. For other non-core ideas,
+            If you pick one of the <strong>Other Preference small-group items we’re reserving now</strong> (below),
+            we’ll include it in our concierge reservation and collect a deposit here. For other ideas beyond the Majority Preference picks,
             we can share contact info to self-book—or tell us and we’ll see if we can add it.
           </div>
 
           <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Badge tone="ok">Reservation-backed optional items: Mangrove • Waterfall Rappelling • Surf Lessons • Jungle Tubing</Badge>
+            <Badge tone="ok">Reservation-backed Other Preference items: Mangrove • Waterfall Rappelling • Surf Lessons • Jungle Tubing</Badge>
           </div>
         </header>
 
         {/* 3-column layout */}
         <div className="info-grid">
-          {/* Column 1: Schedule + selections, with optional checklist where applicable */}
+          {/* Column 1: Schedule + selections, with other-preference checklist where applicable */}
           <section className="info-card info-card--span4">
             <div className="kicker">Step 1</div>
             <h2 className="info-title">Choose Activities</h2>
