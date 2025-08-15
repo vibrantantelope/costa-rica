@@ -3,7 +3,7 @@
 // Normalize helper
 const norm = s => String(s || "").trim().toLowerCase();
 
-// These four are the “Open/Optional Sign-Ups we’ll reserve now”
+// These four are the “Other Preference Sign-Ups we’ll reserve now”
 export const OPTIONAL_SIGNUPS_KEYS = [
   "damas island mangrove",
   "waterfall rappelling",
@@ -51,7 +51,7 @@ export const activityCatalog = [
     deposit: 20,
   },
 
-  // Core/common items so detectDeposit() still works nicely
+  // Majority/common items so detectDeposit() still works nicely
   {
     key: "public catamaran",
     aliases: ["public catamaran tour", "catamaran (public)"],
