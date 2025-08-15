@@ -9,6 +9,7 @@ import {
   getFullPriceInfo,
   detectDeposit
 } from "../data/deposits";
+import Papa from "papaparse";
 
 // 👉 Set these:
 const VENMO_USER = "John-Kenny-16";
@@ -26,18 +27,13 @@ function venmoUrl(amount, note) {
   });
   return `https://venmo.com/?${params.toString()}`;
 }
-
-// Tiny CSV parser
+// CSV parser using PapaParse
 function parseCSV(text) {
-  const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
-  if (rows.length === 0) return [];
-  const [head, ...rest] = rows;
-  const normHead = head.map(h => String(h || "").trim().toLowerCase());
-  return rest.map(r => {
-    const obj = {};
-    r.forEach((v, i) => (obj[normHead[i] || `col${i}`] = v));
-    return obj;
-  });
+  return Papa.parse(text, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: h => String(h || "").trim().toLowerCase(),
+  }).data;
 }
 
 // Simple badge
