@@ -263,8 +263,8 @@ export default function SignupPage({ onBack }) {
       const who = row.name || "";
       if (!m.has(date)) m.set(date, new Map());
       const inner = m.get(date);
-      if (!inner.has(act)) inner.set(act, []);
-      inner.get(act).push(who);
+      if (!inner.has(act)) inner.set(act, new Set());
+      inner.get(act).add(who);
     }
     return m;
   }, [roster]);
@@ -467,12 +467,13 @@ export default function SignupPage({ onBack }) {
                   <h3 className="day__title">{day.date}</h3>
                   <div className="day__list">
                     {day.items.map((it, idx) => {
-                      const people = byActivity?.get(it.name) || [];
+                      const peopleSet = byActivity?.get(it.name) ?? new Set();
+                      const people = Array.from(peopleSet);
                       return (
                         <div key={idx} className="day__item">
                           <div className="day__item-main">
                             <span className="day__item-name">{it.name}</span>
-                            <span className="badge">{people.length}</span>
+                            <span className="badge">{peopleSet.size}</span>
                           </div>
                           {people.length > 0 && (
                             <div className="day__item-preferred" style={{ fontSize: 12 }}>
